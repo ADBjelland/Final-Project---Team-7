@@ -14,19 +14,19 @@ import math
 
 class system_iden:
     
-    def retrieve (filename,i = 1):
+    def retrieve (filename,i = 1):       #Asks for filename, Bridge Number as inputs
         
-        data = pd.read_csv(filename)
+        data = pd.read_csv(filename)        
 
-        data = data[data["Bridge"] == str(i)]
-        data = data.reset_index(drop=True)
+        data = data[data["Bridge"] == str(i)]    # Open data of bridge user selected  
+        data = data.reset_index(drop=True)       # Reorganizing index 
         
         
-        G_number_raw = data ["Girder"]
-        G_span_length_raw = data["Girder.1"]
-        G_order_raw = data["Girder.2"]
-        G_properties_raw = data["Girder.3"]
-        G_splice_raw = data["Girder.4"]
+        G_number_raw = data ["Girder"]          # Girder Number
+        G_span_length_raw = data["Girder.1"]    # Girder span length
+        G_order_raw = data["Girder.2"]          # Girder section order
+        G_properties_raw = data["Girder.3"]     # Cross section dimension
+        G_splice_raw = data["Girder.4"]         # Location of splice
         
         G_number = []
         G_span_length = []
@@ -35,8 +35,9 @@ class system_iden:
         G_splice = []
         
         
+        # Loops to format information into list or list of lists
         
-        for x in range (len(data)):
+        for x in range (len(data)):          
             
             G_number.append(data ["Girder"][x])     
             G_span_length.append(data["Girder.1"][x])
@@ -83,7 +84,10 @@ class system_iden:
                 G_span_length[y][z] = float(G_span_length[y][z])    
             y+=1 
         
+        # Create dictionary of Girder information
+        # Values are either list or list of lists
         Girder_info = {"Girder Number":G_number, "Span Length": G_span_length, "Cross Section order": G_order,"Cross section Property": G_properties, 'Splice location': G_splice}
+        
         
         return Girder_info
 
@@ -91,6 +95,10 @@ class system_iden:
 
     def splice_global (Girder_info, dist_x = 5, dist_y = 5):
         
+        # Function to assign global coordinates of each splice
+        # dist_x and dist_y are distance between each Girder
+        # Creates list of lists. Each component is list of global coordinate of all splices within each girder
+        # Length of output will be # of girder, # of each list inside of output is # of splices
         a = Girder_info["Splice location"]
         
         splice_global = []
@@ -124,6 +132,9 @@ class system_iden:
 
 
     def splice_dist_calc (x_coord, y_coord, Girder_num = [1,2], splice_num = [1,1]):
+        
+        # Calculates distance between splices based on user input
+        # User defines total global x-y coordinate of all splices, Girder Number and splice number of two splices that user wants
         
         m1 = Girder_num[0]-1
         m2 = Girder_num[1]-1
