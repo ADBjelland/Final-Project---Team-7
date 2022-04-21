@@ -86,7 +86,7 @@ class system_iden:
         
         # Create dictionary of Girder information
         # Values are either list or list of lists
-        Girder_info = {"Girder Number":G_number, "Span Length": G_span_length, "Cross Section order": G_order,"Cross section Property": G_properties, 'Splice location': G_splice}
+        Girder_info = {"Girder Number":G_number, "Span Length": G_span_length, "Cross Section Order": G_order,"Cross Section Property": G_properties, 'Splice Location': G_splice}
         
         
         return Girder_info
@@ -99,7 +99,7 @@ class system_iden:
         # dist_x and dist_y are distance between each Girder
         # Creates list of lists. Each component is list of global coordinate of all splices within each girder
         # Length of output will be # of girder, # of each list inside of output is # of splices
-        a = Girder_info["Splice location"]
+        a = Girder_info["Splice Location"]
         
         splice_global = []
         x_start = 0
