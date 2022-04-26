@@ -8,8 +8,8 @@ InputRow = 3
 def GirderSketch(xprops, xtype): # [[tf,bf,tw,dw],...], 'I'
     # assume flange width, bf, and web height, dw, are constant
     
-    bf = float(xprops[0][1])
-    dw = float(xprops[0][3])
+    bf = xprops[1]
+    dw = xprops[3]
     
     if xtype == 'I': # initialize I beam list
         nodepos = []
