@@ -4,21 +4,21 @@ import csv
 InputFileName = "Example Input File - Sheet1.csv"   #Read input csv file
 InputRow = 3
 
+
 def GirderSketch(xprops, xtype): # [[tf,bf,tw,dw],...], 'I'
     # assume flange width, bf, and web height, dw, are constant
     
-    ### Correct middle bottom node to be 0,0 ###
-    
-    bf = xprops[1]
-    dw = xprops[3]
+    bf = float(xprops[0][1])
+    dw = float(xprops[0][3])
     
     if xtype == 'I': # initialize I beam list
         nodepos = []
         nodeconnect = []
         
-        nodepos = [[0,0],[bf/2,0],[bf,0],[0,dw],[bf/2,dw],[bf,dw]]
-        nodeconnect = [[0,1],[1,2],[1,4],[3,4],[4,5]]    
-    
+        # node 0 in middle-bottom orientation
+        nodepos = [[0,0],[-bf/2,0],[bf/2,0],[0,dw],[-bf/2,dw],[bf/2,dw]]
+        nodeconnect = [[0,1],[0,2],[0,3],[3,4],[3,5]]
+        
     return nodepos, nodeconnect
 
 def FormatCorrector(ListofLists):
