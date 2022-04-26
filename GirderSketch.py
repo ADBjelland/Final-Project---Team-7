@@ -16,10 +16,10 @@ def GirderSketch(xprops, xtype): # [[tf,bf,tw,dw],...], 'I'
         nodepos = []
         nodeconnect = []
         
-        nodepos = [[0,0],[bf/2,0],[bf,0],[0,dw],[bf/2,dw],[bf,dw]]
-        nodeconnect = [[0,1],[1,2],[1,4],[3,4],[4,5]]
+        nodepos = [[0,0],[-bf/2,0],[bf/2,0],[0,dw],[-bf/2,dw],[bf/2,dw]]
+        nodeconnect = [[0,1],[0,2],[0,3],[3,4],[3,5]]
         
     
     return nodepos, nodeconnect
     
-a,b = GirderSketch([[1,2,3,4]],'I')        
+a,b = GirderSketch([[1,2,3,4]],'I')         
