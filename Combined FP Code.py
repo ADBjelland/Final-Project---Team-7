@@ -11,7 +11,7 @@ import math
 import csv
 
 InputFileName = "Example Input File - Sheet1.csv"   #Read input csv file
-InputRow = 4
+InputRow = 3
 
 
 def GirderSketch(xprops, xtype): # [[tf,bf,tw,dw],...], 'I'
@@ -146,7 +146,7 @@ class system_iden:
     
 
     @staticmethod
-    def splice_global (System_info):
+    def splice_local (System_info):
         
         # Function to assign global coordinates of each splice
         # dist_x and dist_y are distance between each Girder
@@ -162,54 +162,54 @@ class system_iden:
         
         skew = System_info[1]["Skew"]
         
-        x = 0 
+        # x = 0 
         
-        x_coord = []
-        y_coord = []
+        # x_coord = []
+        # y_coord = []
         
-        while x < Girder_num:
-            x_start = 0.0
-            y_start = 0.0
+        # while x < Girder_num:
+        #     x_start = 0.0
+        #     y_start = 0.0
             
-            x_start = x_start + ((sum(Girder_spacing[x:]))*(math.tan(skew*math.pi/180)))
-            y_start = y_start + sum(Girder_spacing[x:])
+        #     x_start = x_start + ((sum(Girder_spacing[x:]))*(math.tan(skew*math.pi/180)))
+        #     y_start = y_start + sum(Girder_spacing[x:])
             
            
-            for i in range(len(a)):
-                for j in range(len(a[i])):
-                    x_start += a[i][j]
-                    x_coord.append(x_start)
+        #     for i in range(len(a)):
+        #         for j in range(len(a[i])):
+        #             x_start += a[i][j]
+        #             x_coord.append(x_start)
             
-            for i in range(len(a)):
-                for j in range(len(a[i])):
-                    y_coord.append(y_start)
-            x += 1
+        #     for i in range(len(a)):
+        #         for j in range(len(a[i])):
+        #             y_coord.append(y_start)
+        #     x += 1
         
-        # splice_global = []        
-        # m = []
+        splice_local = []        
+        m = []
         
-        # for i in range(len(a)):                       
-        #     x_start = 0
+        for i in range(len(a)):                       
+            x_start = 0
             
-        #     if i != 0:
-        #         x_start += GLength[i - 1]           ## Changed to start each splice at new span - AB ##
+            if i != 0:
+                x_start += GLength[i - 1]           ## Changed to start each splice at new span - AB ##
                 
-        #     for j in range (len(a[i])):
-        #         x_start += a[i][j]
-        #         m.append(x_start)  
+            for j in range (len(a[i])):
+                x_start += a[i][j]
+                m.append(x_start)  
         
-        # x_coord = m        ## Changed to be single list instead of list of lists - AB ## Currently not putting splice at Supports, would be nice to add that...
+        for i in span_length:
+            if i not in m:
+                m.append(i)
         
-        # m = []
-        # for i in range(len(a)):
-            
-        #     y_start = 0
-        #     if i != 0:
-        #         y_start += dist_y
-        #     for j in range (len(a[i])):
-        #         m.append(y_start)  
+        x_coord = sorted(m)        ## Changed to be single list instead of list of lists - AB ## Currently not putting splice at Supports, would be nice to add that...
         
-        # y_coord = m         ## Changed to be single list instead of list of lists - AB ##
+        n = []
+        y_start = 0
+        for i in range(len(x_coord)):
+            n.append(y_start)  
+        
+        y_coord = n         ## Changed to be single list instead of list of lists - AB ##
 
         return x_coord, y_coord
     
@@ -229,6 +229,9 @@ class system_iden:
         bracing_config = bracing_info["Bracing Configuration"]
         bracing_number = bracing_info["Number of Bracing"]
         bracing_spacing = bracing_info ["Bracing Spacing"]
+        
+        Support_info = System_info[3]
+        buffer_length = Support_info["Support Buffer"]
 
         x_start = 0
         y_start = 0 
@@ -274,12 +277,14 @@ class system_iden:
             x_end = Girder_spanpoint_x[0][-1]
             y_end = Girder_spanpoint_y[0][-1]
             
-            d = x_end/((bracing_number)*len(span_length)-1)
+            d = bracing_spacing[0]
             
             while x_grid_point < x_end:
-                x_grid_point += d     
-                x_grid.append(x_grid_point)
-        
+                if x_grid_point + d < x_end:
+                    x_grid_point += d
+                    x_grid.append(x_grid_point)
+                else:
+                    break
             i = 0
             for L in Girder_spanpoint_x:
                 m = []
@@ -292,21 +297,39 @@ class system_iden:
                 i+=1
                 bracing_xcoord.append(m)
                 bracing_ycoord.append(n)
-
+            
+            check_buffer = []
+            for L in Girder_spanpoint_x:
+                for k in range(len(L)):
+                    check_buffer.append(L[k] - buffer_length)
+                    check_buffer.append(L[k] + buffer_length)
+            
+            for i in range(len(bracing_xcoord)):
+                for j in bracing_xcoord[i]:
+                    if j in check_buffer:
+                        bracing_xcoord[i].remove(j)
+                        bracing_ycoord[i].pop(0)
+                
             return bracing_xcoord, bracing_ycoord
               
         if bracing_config == "Nonuniform":    
             
+            x_end = Girder_spanpoint_x[0][-1]
+            y_end = Girder_spanpoint_y[0][-1]
+            
             x_grid_point = 0
+            
             for i in range(len(bracing_number)):  
-                x_grid_point = Girder_spanpoint_x[-1][i]
-                
-                for j in range(len(bracing_number[i])):
+                # x_grid_point = Girder_spanpoint_x[-1][i] 
+                for j in range(len(bracing_spacing[i])):
                     d = bracing_spacing[i][j]
                     
-                    for k in range(int(bracing_number[i][j])):
-                        x_grid_point += d
-                        x_grid.append(x_grid_point)
+                    for k in range(int(bracing_number[i][j]-1)):
+                        if x_grid_point + d < x_end:
+                            x_grid_point += d
+                            x_grid.append(x_grid_point)
+                        else:
+                            break
                 
             
             i = 0
@@ -326,34 +349,27 @@ class system_iden:
         
         
     @staticmethod
-    def splice_dist_calc (System_info, x_coord, y_coord, Girder_num = [1,2], splice_num = [1,1]):
+    def splice_dist_calc (x_coord, splice_num = [1,2]):
         
         # Calculates distance between splices based on user input
         # User defines total global x-y coordinate of all splices, Girder Number and splice number of two splices that user wants
-        
-        splice_location = System_info[0]["Splice Location"]
         
         a = 0
         for i in range(len(splice_location)):
             a += len(splice_location[i])
             
         m1 = splice_num[0]-1
-        m2 = splice_num[1]-1
+        m2 = splice_num[1]-1    
         
-        n1 = ((Girder_num[0]-1)*a) + m1
-        n2 = ((Girder_num[1]-1)*a) + m2
+        splice_dist = x_coord[m2] - x_coord[m1]
         
-        
-        
-        
-        splice_dist = math.hypot(x_coord[n2] - x_coord[n1], y_coord[n2] - y_coord[n1])
         return splice_dist
 
 System_info = system_iden.retrieve(InputFileName,InputRow)
-x_coord, y_coord = system_iden.splice_global(System_info)
+x_coord = system_iden.splice_local(System_info)
 system_iden.normal_bracing(System_info)                                       ## Can we put this in Girder_info?
-splice_coord = system_iden.splice_global(System_info)
-splice_dist = system_iden.splice_dist_calc(System_info,x_coord,y_coord)
+splice_coord = system_iden.splice_local(System_info)
+# splice_dist = system_iden.splice_dist_calc(System_info,x_coord,y_coord)
 
 for item in System_info[0]['Cross Section Property']:
     PList,CList = GirderSketch(item,'I')
