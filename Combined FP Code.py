@@ -11,7 +11,7 @@ import math
 import csv
 
 InputFileName = "Example Input File - Sheet1.csv"   #Read input csv file
-InputRow = 3
+InputRow = 4
 
 
 def GirderSketch(xprops, xtype): # [[tf,bf,tw,dw],...], 'I'
@@ -114,13 +114,19 @@ class system_iden:
         
         if Bracing_config == "Uniform" :
             Bracing_number = int(Bracing_number)
-        else:    
-            Bracing_number = FormatCorrector(Bracing_number)
+        if Bracing_config == "Nonuniform":    
+            if Bracing_type == "Normal":
+                Bracing_number = FormatCorrector2(Bracing_number)
+            else:
+                Bracing_number = FormatCorrector(Bracing_number)
         
         if Bracing_config == "Uniform":
             Bracing_spacing = FormatCorrector2(Bracing_spacing)
-        else:    
-            Bracing_spacing = FormatCorrector(Bracing_spacing)    
+        if Bracing_config == "Nonuniform":    
+            if Bracing_type == "Normal":
+                Bracing_spacing = FormatCorrector2(Bracing_spacing)
+            else:
+                Bracing_spacing = FormatCorrector(Bracing_spacing)    
         
         Stiff_offset = FormatCorrector2(Stiff_offset)
         Bracing_prop = FormatCorrector2(Bracing_prop)
@@ -314,17 +320,19 @@ class system_iden:
               
         if bracing_config == "Nonuniform":    
             
+            bracing_number = bracing_info["Number of Bracing"][0]
+            bracing_spacing = bracing_info ["Bracing Spacing"][0]
+            
             x_end = Girder_spanpoint_x[0][-1]
             y_end = Girder_spanpoint_y[0][-1]
             
             x_grid_point = 0
             
             for i in range(len(bracing_number)):  
-                # x_grid_point = Girder_spanpoint_x[-1][i] 
-                for j in range(len(bracing_spacing[i])):
-                    d = bracing_spacing[i][j]
+                for j in bracing_spacing:
+                    d = j
                     
-                    for k in range(int(bracing_number[i][j]-1)):
+                    for k in range(int(bracing_number[i]-1)):
                         if x_grid_point + d < x_end:
                             x_grid_point += d
                             x_grid.append(x_grid_point)
