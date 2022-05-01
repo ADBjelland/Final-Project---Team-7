@@ -351,7 +351,9 @@ class system_iden:
                     if i > 0: # start at 0 if working with first span
                         sep = spanlength[i - 1] + sep # start at sum(previous spans) for later spans
                     bps = math.floor(span/bs)
-                    for b in range(bps): # Iterate over number of bracings per span
+                    if i == len(spanlength) - 1:
+                        bps = math.floor(span/bs) - 1
+                    for b in range(int(bps)): # Iterate over number of bracings per span
                         bracings.append([(b+1)*bs + sep, 0]) # append global location of bracing for base girder
                 
                 bstore = [np.array(bracings)] # store numpy array of global bracing location per girder
@@ -370,7 +372,9 @@ class system_iden:
                     if i > 0:
                         sep = spanlength[i - 1] + sep
                     bps = math.floor(span/bs)
-                    for b in range(bps):
+                    if i == len(spanlength) - 1:
+                        bps = math.floor(span/bs) - 1
+                    for b in range(int(bps)):
                         bracings.append([(b+1)*bs + sep, gspacing*girderamt]) # y-location of base girder is maximum
                
                 bstore = [np.array(bracings)]
@@ -389,7 +393,7 @@ class system_iden:
                 for i, span in enumerate(spanlength): # Iterate over span lengths
                     for j, bps in enumerate(bracingperspan[i]): # Iterate over bracings per span for current span length
                         bps = int(bps)
-                        for b in range(bps): # Iterate over range of bracings per span integers
+                        for b in range(int(bps)): # Iterate over range of bracings per span integers
                             bs = bspacing[i][j] # bracing spacing corresponds with span and bracing per span
                             bracings.append([bprev + bs, 0]) # append global bracing location based on spacing and previous bracing location
                             bprev = bprev + bs # modify bprev to current iteration
@@ -407,7 +411,7 @@ class system_iden:
                 for i, span in enumerate(spanlength): 
                     for j, bps in enumerate(bracingperspan[i]):
                         bps = int(bps)
-                        for b in range(bps):
+                        for b in range(int(bps)):
                             bs = bspacing[i][j]
                             bracings.append([bprev + bs, gspacing*girderamt]) # y-location is y max
                             bprev = bprev + bs
