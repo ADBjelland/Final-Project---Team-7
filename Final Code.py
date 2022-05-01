@@ -2,7 +2,7 @@ import math
 import numpy as np
 import csv
 
-InputFileName = "Example Input File - Sheet1.csv"   #Read input csv file
+InputFileName = "Final Project Input File - Sheet1.csv"   #Read input csv file
 InputRow = 4
 
 def GirderSketch(xprops, xtype): # [[tf,bf,tw,dw],...], 'I'
@@ -42,97 +42,10 @@ def FormatCorrector2(List):
     
     return (List)
 
-def ParallelBracing(skew, girderamt, spanlength, gspacing, bracingperspan, bspacing, uniformity):
-    '''Function to create parallel bracings on girders. 
-        Inputs:
-            skew (deg, float), number of girders (int), span lengths (list), girder spacing (float),
-            number of bracings per span (int or list of lists), bracing spacing (int or list of lists),
-            uniformit ('uniform' or 'nonuniform')'''
-    
-    uni = uniformity.lower()
-    
-    if uni == 'uniform':
-        bracings = []
-        sep = 0
-        if skew >= 0:
-            bps = bracingperspan
-            bs = bspacing
-            
-            for i, span in enumerate(spanlength): # Iterate over span lengths
-                if i > 0: # start at 0 if working with first span
-                    sep = spanlength[i - 1] + sep # start at sum(previous spans) for later spans
-                for b in range(bps): # Iterate over number of bracings per span
-                    bracings.append([(b+1)*bs + sep, 0]) # append global location of bracing for base girder
-            
-            bstore = [np.array(bracings)] # store numpy array of global bracing location per girder
-            
-            for g in range(girderamt - 1): # noninclusive of first girder
-                globalspacing = (g+1) * gspacing # total spacing from 0
-                skewoffset = globalspacing * math.tan(math.radians(skew)) # parralel offset for y-location
-                skewedgirder = np.array(bracings) + np.array([skewoffset, globalspacing]) # global bracing locations for skewed girder
-                bstore.append(skewedgirder)
-                
-        if skew < 0:
-            bps = bracingperspan
-            bs = bspacing
-            
-            for i, span in enumerate(spanlength):
-                if i > 0:
-                    sep = spanlength[i - 1] + sep
-                for b in range(bps):
-                    bracings.append([(b+1)*bs + sep, gspacing*girderamt]) # y-location of base girder is maximum
-           
-            bstore = [np.array(bracings)]
-            
-            for g in range(girderamt - 1):
-                globalspacing = (g+1) * gspacing
-                skewoffset = globalspacing * math.tan(math.radians(skew))
-                skewedgirder = np.array(bracings) - np.array([skewoffset, globalspacing]) # subtract
-                bstore.append(skewedgirder)
-                
-        return bstore   
-        
-    if uni == 'nonuniform':
-        bracings = []
-        bprev = 0
-        if skew >= 0:
-            for i, span in enumerate(spanlength): # Iterate over span lengths
-                for j, bps in enumerate(bracingperspan[i]): # Iterate over bracings per span for current span length
-                    for b in range(bps): # Iterate over range of bracings per span integers
-                        bs = bspacing[i][j] # bracing spacing corresponds with span and bracing per span
-                        bracings.append([bprev + bs, 0]) # append global bracing location based on spacing and previous bracing location
-                        bprev = bprev + bs # modify bprev to current iteration
-                    
-            bstore = [np.array(bracings)] # store global location of bracings for base girder
-            
-            for g in range(girderamt - 1):
-                globalspacing = (g+1) * gspacing
-                skewoffset = globalspacing * math.tan(math.radians(skew))
-                skewedgirder = np.array(bracings) + np.array([skewoffset, globalspacing])
-                bstore.append(skewedgirder)
-                
-        if skew < 0:
-            for i, span in enumerate(spanlength): 
-                for j, bps in enumerate(bracingperspan[i]):
-                    for b in range(bps):
-                        bs = bspacing[i][j]
-                        bracings.append([bprev + bs, gspacing*girderamt]) # y-location is y max
-                        bprev = bprev + bs
-                    
-            bstore = [np.array(bracings)]
-            
-            for g in range(girderamt - 1):
-                globalspacing = (g+1)*gspacing
-                skewoffset = globalspacing * math.tan(math.radians(skew))
-                skewedgirder = np.array(bracings) - np.array([skewoffset, globalspacing])
-                bstore.append(skewedgirder)
-        
-        return bstore
-
 class system_iden:
         
     @staticmethod
-    def retrieve(filename,i = 3):       #Asks for filename, Bridge Number as inputs
+    def retrieve(filename, i = 3):       #Asks for filename, Bridge Number as inputs
         
         DATA = []
         
@@ -143,9 +56,10 @@ class system_iden:
             next(csv_reader)
             for row in csv_reader:
                 if csv_reader.line_num == i:
-                    print('Reading the following bridge:', csv_reader.line_num - 2)
-                    DATA.append(list(row))     
-          
+                    DATA.append(list(row))   
+                    
+        Bridge_ID = DATA[0][0]
+        print('Reading the following bridge:', Bridge_ID)  
         G_number = DATA[0][1]         # Girder Number
         G_span_length = DATA[0][2]    # Girder span length
         G_order = DATA[0][3]          # Girder section order
@@ -404,6 +318,118 @@ class system_iden:
             
             return bracing_xcoord, bracing_ycoord
         
+    @staticmethod    
+    def parallel_bracing(System_info):
+        '''Function to create parallel bracings on girders. 
+            Inputs:
+                skew (deg, float), number of girders (int), span lengths (list), girder spacing (list of floats),
+                number of bracings per span (int or list of lists), bracing spacing (int or list of lists),
+                uniformit ('uniform' or 'nonuniform')'''
+        
+        Girder_info = System_info[0]
+        Bridge_info = System_info[1]
+        Bracing_info = System_info[2]
+        
+        skew = Bridge_info['Skew']
+        girderamt = Girder_info['Girder Number']
+        spanlength = Girder_info['Span Length']
+        gspacing = Girder_info['Girder Spacing']
+        bracingperspan = Bracing_info['Number of Bracing']
+        bspacing = Bracing_info['Bracing Spacing']
+        uniformity = Bracing_info['Bracing Configuration']
+        
+        
+        uni = uniformity.lower()
+        
+        if uni == 'uniform':
+            bracings = []
+            sep = 0
+            if skew >= 0:
+                bs = bspacing[0]
+                
+                for i, span in enumerate(spanlength): # Iterate over span lengths
+                    if i > 0: # start at 0 if working with first span
+                        sep = spanlength[i - 1] + sep # start at sum(previous spans) for later spans
+                    bps = math.floor(span/bs)
+                    for b in range(bps): # Iterate over number of bracings per span
+                        bracings.append([(b+1)*bs + sep, 0]) # append global location of bracing for base girder
+                
+                bstore = [np.array(bracings)] # store numpy array of global bracing location per girder
+                
+                globalspacing = 0
+                for g, gs in enumerate(gspacing): # noninclusive of first girder
+                    globalspacing = globalspacing + gs # total spacing from 0
+                    skewoffset = globalspacing * math.tan(math.radians(skew)) # parralel offset for y-location
+                    skewedgirder = np.array(bracings) + np.array([skewoffset, globalspacing]) # global bracing locations for skewed girder
+                    bstore.append(skewedgirder)
+                    
+            if skew < 0:
+                bs = bspacing[0]
+                
+                for i, span in enumerate(spanlength):
+                    if i > 0:
+                        sep = spanlength[i - 1] + sep
+                    bps = math.floor(span/bs)
+                    for b in range(bps):
+                        bracings.append([(b+1)*bs + sep, gspacing*girderamt]) # y-location of base girder is maximum
+               
+                bstore = [np.array(bracings)]
+                
+                globalspacing = 0
+                for g, gs in enumerate(gspacing): # noninclusive of first girder
+                    globalspacing = globalspacing + gs # total spacing from 0
+                    skewoffset = globalspacing * math.tan(math.radians(skew))
+                    skewedgirder = np.array(bracings) - np.array([skewoffset, globalspacing]) # subtract
+                    bstore.append(skewedgirder)
+            
+        if uni == 'nonuniform':
+            bracings = []
+            bprev = 0
+            if skew >= 0:
+                for i, span in enumerate(spanlength): # Iterate over span lengths
+                    for j, bps in enumerate(bracingperspan[i]): # Iterate over bracings per span for current span length
+                        bps = int(bps)
+                        for b in range(bps): # Iterate over range of bracings per span integers
+                            bs = bspacing[i][j] # bracing spacing corresponds with span and bracing per span
+                            bracings.append([bprev + bs, 0]) # append global bracing location based on spacing and previous bracing location
+                            bprev = bprev + bs # modify bprev to current iteration
+                        
+                bstore = [np.array(bracings)] # store global location of bracings for base girder
+                
+                globalspacing = 0
+                for g, gs in enumerate(gspacing): # noninclusive of first girder
+                    globalspacing = globalspacing + gs # total spacing from 0
+                    skewoffset = globalspacing * math.tan(math.radians(skew)) # parralel offset for y-location
+                    skewedgirder = np.array(bracings) + np.array([skewoffset, globalspacing]) # global bracing locations for skewed girder
+                    bstore.append(skewedgirder)
+                    
+            if skew < 0:
+                for i, span in enumerate(spanlength): 
+                    for j, bps in enumerate(bracingperspan[i]):
+                        bps = int(bps)
+                        for b in range(bps):
+                            bs = bspacing[i][j]
+                            bracings.append([bprev + bs, gspacing*girderamt]) # y-location is y max
+                            bprev = bprev + bs
+                        
+                bstore = [np.array(bracings)]
+                
+                globalspacing = 0
+                for g, gs in enumerate(gspacing): # noninclusive of first girder
+                    globalspacing = globalspacing + gs # total spacing from 0
+                    skewoffset = globalspacing * math.tan(math.radians(skew))
+                    skewedgirder = np.array(bracings) - np.array([skewoffset, globalspacing]) # subtract
+                    bstore.append(skewedgirder)
+        
+        # Convert to list of lists of x and y coordinates
+        bracing_xcoord = []
+        bracing_ycoord= []
+        for girder in bstore:
+            bracing_xcoord.append(girder[:,0].tolist())
+            bracing_ycoord.append(girder[:,1].tolist())
+        
+        return bracing_xcoord, bracing_ycoord  
+        
     @staticmethod
     def splice_dist_calc (x_coord, splice_num = [1,2]):
         
@@ -425,7 +451,10 @@ System_info = system_iden.retrieve(InputFileName,InputRow)
 x_coord = system_iden.splice_local(System_info)
 
 # Bracing Logic...
-system_iden.normal_bracing(System_info)
+if System_info[2]['Orientation'] == 'Normal':
+    bracing_xcoord, bracing_ycoord = system_iden.normal_bracing(System_info)
+elif System_info[2]['Orientation'] == 'Parallel': 
+    bracing_xcoord, bracing_ycoord = system_iden.parallel_bracing(System_info)
 
 splice_coord = system_iden.splice_local(System_info)
 # splice_dist = system_iden.splice_dist_calc(System_info,x_coord,y_coord)
