@@ -76,9 +76,6 @@ class system_iden:
         G_splice = FormatCorrector(G_splice)
         G_length = sum(G_span_length)
         G_spacing = FormatCorrector2(G_spacing)
-        
-        # Data checks would go here...    
-    
     
         # Create dictionary of Girder information
         # Values are either list or list of lists
@@ -128,7 +125,7 @@ class system_iden:
         Support_buffer = DATA[0][19]
         Support_type = DATA[0][20]
         
-        Support_buffer = int(Support_buffer)
+        Support_buffer = float(Support_buffer)
         Support_type = FormatCorrector2(Support_type)
        
         
@@ -287,19 +284,30 @@ class system_iden:
             bracing_number = bracing_info["Number of Bracing"][0]
             bracing_spacing = bracing_info ["Bracing Spacing"][0]
             
-            x_end = Girder_spanpoint_x[0][-1]
+            x_end = Girder_spanpoint_x[1][-1]
             y_end = Girder_spanpoint_y[0][-1]
             
             x_grid_point = 0
+            c = []
+            z = 0
+                
             
             for i in range(len(bracing_number)):  
-                for j in bracing_spacing:
-                    d = j
-                    
-                    for k in range(int(bracing_number[i]-1)):
+                
+                d = bracing_spacing[i]
+                k = 0
+                if i == 0:
+                    while k < int(bracing_number[i]):
                         if x_grid_point + d < x_end:
                             x_grid_point += d
                             x_grid.append(x_grid_point)
+                        k+=1
+                else:
+                    while k < int(bracing_number[i]):
+                        if x_grid_point + d < x_end:
+                            x_grid_point += d
+                            x_grid.append(x_grid_point)
+                            k+=1
                         else:
                             break
                 
@@ -435,7 +443,7 @@ class system_iden:
         return bracing_xcoord, bracing_ycoord  
         
     @staticmethod
-    def splice_dist_calc (x_coord, splice_num = [1,2]):
+    def splice_dist_calc (splice_location, splice_num = [1,2]):
         
         # Calculates distance between splices based on user input
         # User defines total global x-y coordinate of all splices, Girder Number and splice number of two splices that user wants
@@ -464,7 +472,7 @@ splice_coord = system_iden.splice_local(System_info)
 # splice_dist = system_iden.splice_dist_calc(System_info,x_coord,y_coord)
 
 for item in System_info[0]['Cross Section Property']:
-    PList,CList = GirderSketch(item,'I')
+    PList,CList = GirderSketch(item, System_info[0]['Girder Type'])
 
 ## --- Run Abaqus Script --- ##
 
