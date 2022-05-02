@@ -280,7 +280,7 @@ class system_iden:
         if bracing_config == "Uniform":
             
             x_grid_point= 0
-            x_end = Girder_spanpoint_x[0][-1]
+            x_end = Girder_spanpoint_x[1][-1]
             y_end = Girder_spanpoint_y[0][-1]
             
             d = bracing_spacing[0]
