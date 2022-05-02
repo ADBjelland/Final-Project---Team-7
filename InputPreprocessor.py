@@ -174,7 +174,6 @@ class system_iden:
                 x_sum += Item
                 m.append(x_sum)
         
-        m.append(sum(span_length[0:ii]))
         x_coord = m
         
         n = []
@@ -454,9 +453,7 @@ class system_iden:
         # Calculates distance between splices based on user input
         # User defines total global x-y coordinate of all splices, Girder Number and splice number of two splices that user wants
         
-        a = 0
-        for i in range(len(splice_location)):
-            a += len(splice_location[i])
+        x_coord = splice_location[0]
             
         m1 = splice_num[0]-1
         m2 = splice_num[1]-1    

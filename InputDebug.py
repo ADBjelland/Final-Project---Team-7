@@ -12,8 +12,8 @@ import csv
 import matplotlib.pyplot as plt
 from InputPreprocessor import *
 
-InputFileName = "Final Project Input File - ErrorDemo.csv"   #Read input csv file
-InputRow = 6
+InputFileName = "Final Project Input File - Sheet1.csv"   #Read input csv file
+InputRow = 5
 DEBUG_Setting = 2
 # 0: error handling
 # 1: plotting
@@ -193,10 +193,10 @@ def DEBUG_DataErrors(System_info):
         if len(list_) != 4:
             raise ListLengthError('Cross Section Property must be Lists of Length 4')
             
-    if len(steel) != 3:
+    if len(steel) != 4:
         raise ListLengthError('Steel must be List of Length 3')
         
-    if len(deck) != 3:
+    if len(deck) != 5:
         raise ListLengthError('Deck must be List of Length 3')
         
     if len(st_offset) != 2:
@@ -211,19 +211,14 @@ def DEBUG_DataErrors(System_info):
 
     # if len(su_type) != len(span_lengths):
     #     raise ListLengthError('Support Types != # of Spans')
-    
 
     # Data Errors -----------------------------
     if g_nums != len(g_spacing) + 1:
         raise DataError('# of Girders and Girder Spacing not Compatible')
-        
-    splice_sum = []
-    for list_ in splice_loc:
-        for value in list_:
-            splice_sum.append(value)
-    
-    if sum(span_lengths) <= sum(splice_sum):
-        raise DataError('Splice Locations > Girder Length')
+
+    for i, span in enumerate(span_lengths):
+        if span <= sum(splice_loc[i]):
+            raise DataError('Splice Locations > Girder Length in Span {}'.format(i+1))
     
     if b_orientation == 'Parallel':
         if type(b_nums) is list:
