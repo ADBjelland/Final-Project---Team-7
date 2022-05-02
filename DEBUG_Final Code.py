@@ -487,7 +487,7 @@ splice_coord = system_iden.splice_local(System_info)
 # splice_dist = system_iden.splice_dist_calc(System_info,x_coord,y_coord)
 
 for item in System_info[0]['Cross Section Property']:
-    PList,CList = GirderSketch(item,'I')
+    PList,CList = GirderSketch(item, System_info[0]['Girder Type'])
     
     
 ## ------------- DEBUG Checks -------------
