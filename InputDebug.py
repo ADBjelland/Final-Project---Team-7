@@ -209,8 +209,8 @@ def DEBUG_DataErrors(System_info):
     # if len(st_props) != 2:
     #     raise ListLengthError('Stiffener Properties must be List of Length 2')
 
-    # if len(su_type) != len(span_lengths):
-    #     raise ListLengthError('Support Types != # of Spans')
+    if len(su_type) != len(span_lengths) + 1:
+         raise ListLengthError('Support Types != # of Spans')
 
     # Data Errors -----------------------------
     if g_nums != len(g_spacing) + 1:
