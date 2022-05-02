@@ -370,7 +370,7 @@ class system_iden:
                 bracing_xcoord.append(m)
                 bracing_ycoord.append(n)
             
-            return x_grid
+            return bracing_xcoord, bracing_ycoord
         
         
         
