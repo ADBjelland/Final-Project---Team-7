@@ -3,7 +3,7 @@ import numpy as np
 import csv
 
 InputFileName = "Final Project Input File - Sheet1.csv"   #Read input csv file
-InputRow = 4
+InputRow = 8
 
 def GirderSketch(xprops, xtype): # [[tf,bf,tw,dw],...], 'I'
     # assume flange width, bf, and web height, dw, are constant
@@ -168,7 +168,8 @@ class system_iden:
             
                 x_sum += Item
                 m.append(x_sum)
-                
+        
+        m.append(sum(span_length[0:ii]))
         x_coord = m
         
         n = []
@@ -508,6 +509,30 @@ def IBeamSketch(s, PList, CList):
         s.Line(point1=(x1, y1),point2=(x2, y2))    
     return
 
+## --- Defining Deck Sketch --- ##
+def DeckSketch(System_info, PartName):
+    DeckInfo = System_info[1]['Deck']
+    GSpacing = System_info[0]['Girder Spacing']
+    GLength = System_info[0]['Girder Length']
+    Skew = System_info[1]['Skew']
+    
+    BWidth = sum(GSpacing) + DeckInfo[4]*2
+    
+    CList = [(0,1), (1,2), (2,3), (3,0)]
+    PList = [(0,0),(GLength,0),(GLength + BWidth*math.tan(Skew*math.pi/180.0),BWidth),(BWidth*math.tan(Skew*math.pi/180.0),BWidth)]    
+    
+    s = mdb.models[ModelName].ConstrainedSketch(name='__profile__',sheetSize=200.0)
+    s.setPrimaryObject(option=STANDALONE)
+    
+    for item in CList:
+        x1, y1 = PList[item[0]]
+        x2, y2 = PList[item[1]]
+        s.Line(point1=(x1, y1),point2=(x2, y2))
+    
+    p = mdb.models['Model-1'].Part(name=PartName, dimensionality=THREE_D, type=DEFORMABLE_BODY)   
+    p.BaseShell(sketch=s)
+    return
+
 ## --- Defining Stiffener + Brace Sketch --- ##
 def StiffenerBraceSketch(GSpacing, System_info, ii):
     
@@ -626,11 +651,15 @@ def StiffenerBraceSketch2(GSpacing, System_info, ii):
     return
 
 ## --- Defining Datums & Partitions --- ##
-def DatumPartition(PLocation, ii, i):
+def DatumPartition(PLocation, Plane, PartName, ii):
     ## --- Defining a datum --- ###
-    PartName = 'Girder - ' + str(i)
     p = mdb.models['Model-1'].parts[PartName]
-    p.DatumPlaneByPrincipalPlane(principalPlane=XYPLANE, offset=PLocation)
+    if Plane == 'XY':
+        p.DatumPlaneByPrincipalPlane(principalPlane=XYPLANE, offset=PLocation)
+    if Plane == 'XZ':
+        p.DatumPlaneByPrincipalPlane(principalPlane=XZPLANE, offset=PLocation)
+    if Plane == 'YZ':
+        p.DatumPlaneByPrincipalPlane(principalPlane=YZPLANE, offset=PLocation)
     
     ## --- Defining a partition --- ###
     f = p.faces
@@ -666,21 +695,24 @@ def PartBeamExtrude(i, GLength):
     return
 
 ## --- Section Assignments --- ##
-def BridgeMaterial():
+def BridgeMaterial(System_info):
+    SteelProp = System_info[1]['Steel Property']
     mdb.models['Model-1'].Material(name='Steel')
-    mdb.models['Model-1'].materials['Steel'].Elastic(table=((29000.0, 0.3), ))
+    mdb.models['Model-1'].materials['Steel'].Elastic(table=((SteelProp[1], SteelProp[0]), ))
+    
+    ConreteProp = System_info[1]['Deck']
+    mdb.models['Model-1'].Material(name='Concrete')
+    mdb.models['Model-1'].materials['Concrete'].Elastic(table=((ConreteProp[1], ConreteProp[0]), ))
     return
 
-def CreateBridgeSections(CProp, SProp, BProp):
-    mdb.models['Model-1'].GeneralizedProfile(name='Strut', area=10.0, 
-    i11=10.0, i12=10.0, i22=10.0, j=1.0, gammaO=0.0, gammaW=0.0)
+def CreateBridgeSections(System_info):
+    CProp = System_info[0]['Cross Section Property']
+    SProp = System_info[2]['Stiffner Properties'][0]
+    SteelProp = System_info[1]['Steel Property']
+    BProp = System_info[2]['Brace Properties']
+    DProp = System_info[1]['Deck']
     
-    mdb.models['Model-1'].BeamSection(name='Truss', 
-    integration=BEFORE_ANALYSIS, poissonRatio=0.3, beamShape=CONSTANT, 
-    profile='Strut', thermalExpansion=OFF, temperatureDependency=OFF, 
-    dependencies=0, table=((29000.0, 11500.0), ), alphaDamping=0.0, 
-    betaDamping=0.0, compositeDamping=0.0, centroid=(0.0, 0.0), 
-    shearCenter=(0.0, 0.0), consistentMassMatrix=False)
+    mdb.models['Model-1'].TrussSection(area=BProp[0], material='Steel', name='Truss')
     
     ii = 1
     for Prop in CProp:
@@ -705,10 +737,17 @@ def CreateBridgeSections(CProp, SProp, BProp):
         
     mdb.models['Model-1'].HomogeneousShellSection(name='Stiffener', 
     preIntegrate=OFF, material='Steel', thicknessType=UNIFORM, 
-    thickness=SProp[0], thicknessField='', nodalThicknessField='', 
+    thickness=SProp[1], thicknessField='', nodalThicknessField='', 
     idealization=NO_IDEALIZATION, poissonDefinition=DEFAULT, 
     thicknessModulus=None, temperature=GRADIENT, useDensity=OFF, 
     integrationRule=SIMPSON, numIntPts=5)
+    
+    mdb.models['Model-1'].HomogeneousShellSection(name='Deck', preIntegrate=OFF, 
+    material='Concrete', thicknessType=UNIFORM, thickness=DProp[3], 
+    thicknessField='', nodalThicknessField='', 
+    idealization=NO_IDEALIZATION, poissonDefinition=DEFAULT, 
+    thicknessModulus=None, temperature=GRADIENT, useDensity=OFF, 
+    integrationRule=SIMPSON, numIntPts=5)    
     return
 
 def BeamAssignment(System_info, splice_coord, PartName):
@@ -724,7 +763,7 @@ def BeamAssignment(System_info, splice_coord, PartName):
 
     for ii in range(1,len(TotalCoord)):
         ID = int(CSO[ii - 1])
-        
+                
         # Top Flange Assignment
         SectionName = 'Flange - ' + str(ID)
         Selection = f.getByBoundingBox(-CSProp[1]/2, CSProp[3], TotalCoord[ii - 1], CSProp[1]/2, CSProp[3], TotalCoord[ii])
@@ -745,8 +784,6 @@ def BeamAssignment(System_info, splice_coord, PartName):
         region = regionToolset.Region(faces=Selection)
         p.SectionAssignment(region=region, sectionName=SectionName, offset=0.0, 
             offsetType=TOP_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
-        
-        ii += 1
     
     return
 
@@ -760,12 +797,18 @@ def BracingAssignment(SPartName, BPartName, SSectionName, BSectionName):
     p = mdb.models['Model-1'].parts[BPartName]
     e = p.edges
     region = p.Set(edges=e, name=BSectionName)
-    
+        
     p.SectionAssignment(region=region, sectionName=BSectionName, offset=0.0, 
-        offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
+        offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)    
+    return
+
+def DeckAssignment(System_info, PartName, SectionName):
+    p = mdb.models['Model-1'].parts[PartName]
+    f = p.faces
     
-    p.assignBeamSectionOrientation(region=region, method=N1_COSINES, n1=(0.0, 0.0,-1.0))
-    
+    region = p.Set(faces=f, name=SectionName)
+    p.SectionAssignment(region=region, sectionName=SectionName, offset=0.0, 
+        offsetType=BOTTOM_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
     return
 
 ## --- Component Assembly --- ##
@@ -786,9 +829,8 @@ def BraceAssembly(ii):
     a.Instance(name=INameS, part=p, dependent=ON)
     
     AName = 'Brace System - ' + str(ii)
-    a.InstanceFromBooleanMerge(name=AName, instances=(
-        a.instances[INameB], a.instances[INameS], ), 
-        originalInstances=DELETE, domain=GEOMETRY)
+    IList = a.instances.keys()
+    a.InstanceFromBooleanMerge(name=AName, instances=([a.instances[IList[i]] for i in range(len(IList))]), mergeNodes=ALL, nodeMergingTolerance=0.1, domain=GEOMETRY, originalInstances=DELETE)
     
     del a.features[AName + str(-1)]
     
@@ -826,9 +868,8 @@ def BraceAssembly2(ii, System_info):
     a.translate(instanceList=(INameS2, ), vector=V)
     
     AName = 'Brace System - ' + str(ii)
-    a.InstanceFromBooleanMerge(name=AName, instances=(
-        a.instances[INameB], a.instances[INameS1], a.instances[INameS2], ), 
-        originalInstances=DELETE, domain=GEOMETRY)
+    IList = a.instances.keys()
+    a.InstanceFromBooleanMerge(name=AName, instances=([a.instances[IList[i]] for i in range(len(IList))]), mergeNodes=ALL, nodeMergingTolerance=0.1, domain=GEOMETRY, originalInstances=DELETE)
     
     del a.features[AName + str(-1)]
     
@@ -838,11 +879,11 @@ def BraceAssembly2(ii, System_info):
     
     return
 
-def SystemAssembly(GLocation, BCoord, System_info):
-    nGirders = System_info[0]['Girder Number']
-    
+def SuperstructureAssembly(GLocation, BCoord, System_info):
+    nGirders = System_info[0]['Girder Number']    
     a = mdb.models['Model-1'].rootAssembly
     
+    # Adding Girder to System...
     ii = 1
     for item in GLocation:
         PartName = 'Girder - 1'
@@ -852,9 +893,10 @@ def SystemAssembly(GLocation, BCoord, System_info):
         a.Instance(name=IName, part=p, dependent=ON)
         a.translate(instanceList=(IName, ), vector=GLocation[ii - 1])
         ii += 1
-    
+        
+    # Adding Bracing to System...
     ii = 0
-    for CoordList in reversed(BCoord):
+    for CoordList in BCoord:
         ii += 1
         jj = 1
         for ZCoord, XCoord in zip(CoordList[0],CoordList[1]):
@@ -870,9 +912,55 @@ def SystemAssembly(GLocation, BCoord, System_info):
             a.Instance(name=IName, part=p, dependent=ON)
             a.translate(instanceList=(IName, ), vector=V)
             jj += 1
+        
+    return
+
+def BridgeAssembly(System_info):
+    Skew = System_info[1]['Skew']
+    DeckInfo = System_info[1]['Deck']
+    CSProp = System_info[0]['Cross Section Property'][0]
+    
+    a = mdb.models['Model-1'].rootAssembly
+   
+    # Adding Deck to System...
+    PartName = 'Deck'
+    IName = PartName
+    DLocation = (-DeckInfo[4],CSProp[3],-DeckInfo[4]*math.tan(Skew*math.pi/180.0))
+    
+    p = mdb.models['Model-1'].parts[PartName]
+    a.Instance(name=IName, part=p, dependent=ON)
+    a.rotate(instanceList=(IName, ), axisPoint=(0.0, 0.0, 0.0), axisDirection=(0.0, 1.0, 0.0), angle=-90.0)
+    a.rotate(instanceList=(IName, ), axisPoint=(0.0, 0.0, 0.0), axisDirection=(0.0, 0.0, 1.0), angle=-90.0)
+    a.translate(instanceList=(IName, ), vector=DLocation)
     return
 
 ## --- Analysis Components --- ###
+def TieInteraction(System_info, GLocation):
+    DeckInfo = System_info[1]['Deck']
+    nGirder = System_info[0]['Girder Number']
+    GSpacing = System_info[0]['Girder Spacing']
+    GLength = System_info[0]['Girder Length']
+    Skew = System_info[1]['Skew']
+    CSProp = System_info[0]['Cross Section Property'][0]
+    
+    BWidth = sum(GSpacing) + DeckInfo[4]*2  
+    
+    for ii in range(nGirder):   
+        a = mdb.models['Model-1'].rootAssembly
+                
+        s1 = a.instances['Superstructure-1'].faces
+        side2Faces1 = s1.getByBoundingBox(GLocation[ii][0] - CSProp[1]/2, CSProp[3] - 0.1, 0, GLocation[ii][0] + CSProp[1]/2, CSProp[3] + 0.1, GLength + BWidth*math.tan(Skew*math.pi/180.0))
+        region1=regionToolset.Region(side2Faces=side2Faces1)
+    
+        s1 = a.instances['Deck'].faces
+        side2Faces1 = s1.findAt(((GLocation[ii][0], CSProp[3], GLocation[ii][2]), ))
+        region2=regionToolset.Region(side2Faces=side2Faces1)
+        
+        mdb.models['Model-1'].Tie(name='Tie - ' + str(ii), master=region1, slave=region2, 
+            positionToleranceMethod=COMPUTED, adjust=ON, tieRotations=ON, 
+            thickness=ON)
+    return
+
 def Supports(System_info, GLocation):
     nGirder = System_info[0]['Girder Number']
     SLength = System_info[0]['Span Length']
@@ -886,17 +974,21 @@ def Supports(System_info, GLocation):
         Total = item + Total
         SGlobal.append([0, 0, Total])
     
-    for ii in range(0, nGirder):
-        InstanceName = 'Girder - 1 - ' + str(ii + 1)
-        e = a.instances[InstanceName].edges
-        
+    InstanceName = 'Superstructure-1'
+    e = a.instances[InstanceName].edges
+    
+    for ii in range(0, nGirder):        
         jj = 0
         for BoundaryType in SType:
 
-            GlobalLoc = tuple([E1 + E2 for E1, E2 in zip(GLocation[ii], SGlobal[jj])])
-
-            Selection = e.findAt((GlobalLoc, ))
-    
+            GlobalLoc = [E1 + E2 for E1, E2 in zip(GLocation[ii], SGlobal[jj])]
+            GlobalLoc[0] = GlobalLoc[0] + 0.05
+            
+            Selection = e.findAt((tuple(GlobalLoc), ))
+            
+            GlobalLoc[0] = GlobalLoc[0] - 0.1
+            Selection = Selection + e.findAt((tuple(GlobalLoc), ))
+            
             region = regionToolset.Region(edges=Selection)
         
             BoundaryName = 'Support - ' + str(ii + 1) + ' - ' + str(jj + 1)
@@ -907,30 +999,24 @@ def Supports(System_info, GLocation):
             jj += 1
     return
 
-def Mesh(System_info):
-    nGirder = System_info[0]['Girder Number']
+def Mesh(System_info): 
+    # Mesh Superstructure
+    PartName = 'Superstructure'
+    p = mdb.models['Model-1'].parts[PartName]
+    region = p.sets['Truss'].edges
     
-    # Mesh Girders
-    PartName = 'Girder - 1'
-    p = mdb.models['Model-1'].parts['Girder - 1']
     p.seedPart(size=1.0, deviationFactor=0.1, minSizeFactor=0.1)
+    p.seedEdgeByNumber(edges=region, number=1, constraint=FINER)
+    elemType1 = mesh.ElemType(elemCode=T3D2, elemLibrary=STANDARD)
+    p.setElementType(regions=p.sets['Truss'], elemTypes=(elemType1, ))
+    
     p.generateMesh()
     
-    a = mdb.models['Model-1'].rootAssembly
-    # Mesh Bracing System
-    for ii in range(1, nGirder):
-        PartName = 'Brace System - ' + str(ii)
-        p = mdb.models['Model-1'].parts[PartName]
-                
-        region = p.sets['Truss'].edges
-        
-        p.seedPart(size=1.0, deviationFactor=0.1, minSizeFactor=0.1)
-        
-        p.seedEdgeByNumber(edges=region, number=1, constraint=FINER)
-        elemType1 = mesh.ElemType(elemCode=T3D2, elemLibrary=STANDARD)
-        p.setElementType(regions=p.sets['Truss'], elemTypes=(elemType1, ))
-        
-        p.generateMesh()
+    # Mesh Deck
+    PartName = 'Deck'
+    p = mdb.models['Model-1'].parts[PartName]
+    p.seedPart(size=1.0, deviationFactor=0.1, minSizeFactor=0.1)
+    p.generateMesh()
     
     return
 
@@ -939,27 +1025,60 @@ ModelName = 'Model-1'
 
 # Create Girder Part...
 ii = 1
-CrossSection = System_info[0]['Cross Section Property'][0]
 s = mdb.models[ModelName].ConstrainedSketch(name='__profile__',sheetSize=200.0)
-g, v, d, c = s.geometry, s.vertices, s.dimensions, s.constraints
-PList,CList = GirderSketch(CrossSection,'I')
+PList,CList = GirderSketch(System_info[0]['Cross Section Property'][0],'I')
 IBeamSketch(s, PList, CList)
 PartBeamExtrude(ii, System_info[0]['Girder Length'])
 
 # Breakup Girder Geometry by Partitions...
 ii = 2
-jj = 1
+PartName = 'Girder - 1'
+Plane = 'XY'
 for item in splice_coord[0][1:-1]:
-    DatumPartition(item, ii, jj)
+    DatumPartition(item, Plane, PartName, ii)
     ii += 2
 
-CrossSection = System_info[0]['Cross Section Property']
-BridgeMaterial()
-CreateBridgeSections(CrossSection,SProp,BProp)
+BridgeMaterial(System_info)
+CreateBridgeSections(System_info)
 
 # Assign Girder Sections
 PartName = 'Girder - 1'
 BeamAssignment(System_info, splice_coord, PartName)
+
+# Create Deck & Assign Properties...
+PartName = 'Deck'
+SectionName = 'Deck'
+DeckSketch(System_info, PartName)
+DeckAssignment(System_info, PartName, SectionName)
+
+# Break Deck Geometry by Partitions...
+PartName = 'Deck'
+Plane = 'XZ'
+
+DeckInfo = System_info[1]['Deck']
+bf = System_info[0]['Cross Section Property'][0][1]
+
+DPLocation = []
+
+Pos = DeckInfo[4] - bf/2
+DPLocation.append(Pos)
+Pos = DeckInfo[4] + bf/2
+DPLocation.append(Pos)
+
+ii = 2
+for GSpacing in System_info[0]["Girder Spacing"]: 
+    Pos = GSpacing + DPLocation[ii - 2]
+    DPLocation.append(Pos)
+    
+    Pos = GSpacing + DPLocation[ii - 1]
+    DPLocation.append(Pos)
+    
+    ii += 2
+
+ii = 3
+for item in DPLocation:
+    DatumPartition(item, Plane, PartName, ii)
+    ii += 2
 
 # Create Braces...
 ii = 1
@@ -983,7 +1102,7 @@ for ii in range(1,nBraces):
     else:
         BraceAssembly(ii)
 
-# Assemble System ...
+# Assemble Superstructre ...
 # Determine Location of Girders...
 GLocation = [(0,0,0)]
 ii = 0
@@ -992,16 +1111,42 @@ for GSpacing in System_info[0]["Girder Spacing"]:
     Pos = (GSpacing + GLocation[ii][0], 0, (GSpacing + GLocation[ii][0])*math.tan(Skew*math.pi/180.0))
     GLocation.append(Pos)
     ii += 1
-    
-BCoord = list(zip(bracing_xcoord,bracing_ycoord))
-SystemAssembly(GLocation, BCoord, System_info)
+
+if System_info[2]['Orientation'] == 'Parallel':
+    BCoord = list(zip(bracing_xcoord,bracing_ycoord))
+else:
+    BCoord = reversed(list(zip(bracing_xcoord,bracing_ycoord)))
+SuperstructureAssembly(GLocation, BCoord, System_info)
+
+AName = 'Superstructure'
+a = mdb.models['Model-1'].rootAssembly
+IList = a.instances.keys()
+a.InstanceFromBooleanMerge(name=AName, instances=([a.instances[IList[i]] for i in range(len(IList))]), mergeNodes=ALL, nodeMergingTolerance=0.1, domain=GEOMETRY, originalInstances=DELETE)
+
+# Assemble Bridge System
+BridgeAssembly(System_info)
 
 # Assign Girder Supports
+TieInteraction(System_info, GLocation)
 Supports(System_info, GLocation)
 Mesh(System_info)
 
-# Assign Output Parameters...
+# Assign Load
 mdb.models['Model-1'].StaticStep(name='LC_1', previous='Initial')
+
+Z = System_info[0]['Girder Length']/2
+Y = System_info[0]['Cross Section Property'][0][3]
+X = sum(System_info[0]['Girder Spacing'])/2
+
+a = mdb.models['Model-1'].rootAssembly
+s1 = a.instances['Deck'].faces
+side2Faces1 = s1.findAt(((3.0, 5.0, 6.666667), ))
+region = regionToolset.Region(side2Faces=side2Faces1)
+mdb.models['Model-1'].Pressure(name='Load-1', createStepName='LC_1', 
+    region=region, distributionType=UNIFORM, field='', magnitude=-1.0, 
+    amplitude=UNSET)
+
+# Assign Output Parameters...
 mdb.models['Model-1'].fieldOutputRequests['F-Output-1'].setValues(variables=('S', 'U'))
 mdb.models['Model-1'].fieldOutputRequests['F-Output-1'].setValues(frequency=LAST_INCREMENT)
 
@@ -1012,3 +1157,5 @@ mdb.Job(name='Job-1', model='Model-1', description='', type=ANALYSIS,
     explicitPrecision=SINGLE, nodalOutputPrecision=SINGLE, echoPrint=OFF, 
     modelPrint=OFF, contactPrint=OFF, historyPrint=OFF, userSubroutine='', 
     scratch='', resultsFormat=ODB)
+
+mdb.jobs['Job-1'].submit(consistencyChecking=OFF)
