@@ -342,7 +342,7 @@ class system_iden:
                             x_grid.append(x_grid_point)
                         k+=1
                 else:
-                    while k < int(bracing_number[i])-1:
+                    while k < int(bracing_number[i]):
                         if x_grid_point + d < x_end:
                             x_grid_point += d
                             x_grid.append(x_grid_point)
