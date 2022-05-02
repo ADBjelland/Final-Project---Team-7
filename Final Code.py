@@ -3,7 +3,7 @@ import numpy as np
 import csv
 
 InputFileName = "Final Project Input File - Sheet1.csv"   #Read input csv file
-InputRow = 8
+InputRow = 4
 
 def GirderSketch(xprops, xtype): # [[tf,bf,tw,dw],...], 'I'
     # assume flange width, bf, and web height, dw, are constant
@@ -242,7 +242,7 @@ class system_iden:
         if bracing_config == "Uniform":
             
             x_grid_point= 0
-            x_end = Girder_spanpoint_x[0][-1]
+            x_end = Girder_spanpoint_x[1][-1]
             y_end = Girder_spanpoint_y[0][-1]
             
             d = bracing_spacing[0]
