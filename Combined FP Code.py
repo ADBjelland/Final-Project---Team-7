@@ -329,13 +329,6 @@ class system_iden:
             x_grid_point = 0
             c = []
             z = 0
-            # for i in bracing_number and j in bracing_spacing:
-            #     d = j
-            #     k = 0
-            #     while k < i:
-            #         x_grid_point += d
-            #         x_grid.append(x_grid_point)
-            #         c.append(d
                 
             
             for i in range(len(bracing_number)):  
