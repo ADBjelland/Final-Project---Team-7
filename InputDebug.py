@@ -194,10 +194,10 @@ def DEBUG_DataErrors(System_info):
             raise ListLengthError('Cross Section Property must be Lists of Length 4')
             
     if len(steel) != 4:
-        raise ListLengthError('Steel must be List of Length 3')
+        raise ListLengthError('Steel must be List of Length 4')
         
     if len(deck) != 5:
-        raise ListLengthError('Deck must be List of Length 3')
+        raise ListLengthError('Deck must be List of Length 5')
         
     if len(st_offset) != 2:
         raise ListLengthError('Stiffener Offset must be List of Length 2')
