@@ -11,7 +11,7 @@ import math
 import csv
 
 InputFileName = "Final Project Input File - Sheet1.csv"   #Read input csv file
-InputRow =7
+InputRow = 6
 
 
 def GirderSketch(xprops, xtype): # [[tf,bf,tw,dw],...], 'I'
@@ -327,22 +327,35 @@ class system_iden:
             y_end = Girder_spanpoint_y[0][-1]
             
             x_grid_point = 0
+            c = []
+            z = 0
+            # for i in bracing_number and j in bracing_spacing:
+            #     d = j
+            #     k = 0
+            #     while k < i:
+            #         x_grid_point += d
+            #         x_grid.append(x_grid_point)
+            #         c.append(d
+                
             
             for i in range(len(bracing_number)):  
-                for j in bracing_spacing:
-                    d = j
-                    if i == 0:
-                        for k in range(int(bracing_number[i])):
-                            if x_grid_point + d < x_end:
-                                x_grid_point += d
-                                x_grid.append(x_grid_point)
-                    else:
-                        for k in range(int(bracing_number[i]-1)):
-                            if x_grid_point + d < x_end:
-                                x_grid_point += d
-                                x_grid.append(x_grid_point)
-                            else:
-                                break
+                
+                d = bracing_spacing[i]
+                k = 0
+                if i == 0:
+                    while k < int(bracing_number[i]):
+                        if x_grid_point + d < x_end:
+                            x_grid_point += d
+                            x_grid.append(x_grid_point)
+                        k+=1
+                else:
+                    while k < int(bracing_number[i])-1:
+                        if x_grid_point + d < x_end:
+                            x_grid_point += d
+                            x_grid.append(x_grid_point)
+                            k+=1
+                        else:
+                            break
                 
             
             i = 0
@@ -357,7 +370,7 @@ class system_iden:
                 bracing_xcoord.append(m)
                 bracing_ycoord.append(n)
             
-            return bracing_xcoord, bracing_ycoord
+            return x_grid
         
         
         
