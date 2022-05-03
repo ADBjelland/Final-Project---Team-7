@@ -6,6 +6,7 @@ Created on Mon May  2 16:12:08 2022
 @author: caradolbear
 """
 
+
 import math
 import numpy as np
 import csv
@@ -277,13 +278,13 @@ class system_iden:
                 i+=1
                 bracing_xcoord.append(m)
                 bracing_ycoord.append(n)
-            
+                
             check_buffer = []
             for L in Girder_spanpoint_x:             # For loop to check if assigned bracing coordinates interfere with buffer
                 for k in range(len(L)):            
                     check_buffer.append(L[k] - buffer_length)
                     check_buffer.append(L[k] + buffer_length)
-            
+
             for i in range(len(bracing_xcoord)):
                 for j in bracing_xcoord[i]:                # If it coincides with buffer zone,interfering bracing points need to be taken off from the list.
                     if j in check_buffer:                  # Only applies to uniform case. 
@@ -396,7 +397,7 @@ class system_iden:
                     if i == len(spanlength) - 1:
                         bps = math.floor(span/bs) - 1
                     for b in range(int(bps)):
-                        bracings.append([(b+1)*bs + sep, gspacing*girderamt]) # y-location of base girder is maximum
+                        bracings.append([(b+1)*bs + sep, 0]) # y-location of base girder is maximum
                
                 bstore = [np.array(bracings)]
                 
@@ -404,7 +405,7 @@ class system_iden:
                 for g, gs in enumerate(gspacing): # noninclusive of first girder
                     globalspacing = globalspacing + gs # total spacing from 0
                     skewoffset = globalspacing * math.tan(math.radians(skew))
-                    skewedgirder = np.array(bracings) - np.array([skewoffset, globalspacing]) # subtract
+                    skewedgirder = np.array(bracings) + np.array([skewoffset, globalspacing]) # subtract
                     bstore.append(skewedgirder)
             
         if uni == 'nonuniform':
@@ -434,16 +435,16 @@ class system_iden:
                         bps = int(bps)
                         for b in range(int(bps)):
                             bs = bspacing[i][j]
-                            bracings.append([bprev + bs, gspacing*girderamt]) # y-location is y max
+                            bracings.append([bprev + bs, 0]) # y-location is y max
                             bprev = bprev + bs
-                        
+                
                 bstore = [np.array(bracings)]
                 
                 globalspacing = 0
                 for g, gs in enumerate(gspacing): # noninclusive of first girder
                     globalspacing = globalspacing + gs # total spacing from 0
                     skewoffset = globalspacing * math.tan(math.radians(skew))
-                    skewedgirder = np.array(bracings) - np.array([skewoffset, globalspacing]) # subtract
+                    skewedgirder = np.array(bracings) + np.array([skewoffset, globalspacing]) # subtract
                     bstore.append(skewedgirder)
         
         # Convert to list of lists of x and y coordinates
