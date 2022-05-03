@@ -1,4 +1,4 @@
-Final-Project---Team-7
+Bridge Building with Python and Abaqus
 
 Three scripts are necessary to run the program in Abaqus.
   1. InputPreprocessor.py
