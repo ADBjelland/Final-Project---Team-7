@@ -15,6 +15,8 @@ Three scripts are necessary to run the program in Abaqus.
 
 Refer to example input files to ensure data format is correct prior to use. 
 
+Example Input File: https://docs.google.com/spreadsheets/d/1d6-8EyLCfyEOkocTmbgUMpCe0gZMhizHeagAkf8dsB4/edit?usp=sharing
+
 Documentation: https://docs.google.com/document/d/10zO6yMPpG-RnKnAKklPowEqYQDxbSeN2/edit?usp=sharing&ouid=116375287709933268163&rtpof=true&sd=true
 
 Presentation: https://docs.google.com/presentation/d/181gSlfImbQCvOoHU36N8nUIlTq_se1nZ1AS3RKY53z8/edit?usp=sharing
