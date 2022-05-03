@@ -169,9 +169,6 @@ def DEBUG_DataErrors(System_info):
     if len(span_lengths) != len(xsect_order):
         raise ListLengthError('List Length Error: Cross Section Order != # of Spans')
     
-    # if len(span_lengths) != len(xsect_props):
-    #     raise ListLengthError('Cross Section Property != # of Spans')
-    
     if len(span_lengths) != len(splice_loc):
         raise ListLengthError('Splice Location != # of Spans')
     
@@ -204,10 +201,6 @@ def DEBUG_DataErrors(System_info):
         
     if len(b_props) != 2:
         raise ListLengthError('Brace Properties must be List of Length 2')
-        
-    # stiffener properties are just a list in excel, but a list of 1 list in python
-    # if len(st_props) != 2:
-    #     raise ListLengthError('Stiffener Properties must be List of Length 2')
 
     if len(su_type) != len(span_lengths) + 1:
          raise ListLengthError('Support Types != # of Spans')
@@ -220,7 +213,7 @@ def DEBUG_DataErrors(System_info):
         if span <= sum(splice_loc[i]):
             raise DataError('Splice Locations > Girder Length in Span {}'.format(i+1))
     
-    if b_orientation == 'Parallel':
+    if b_orientation == 'Parallel': # reformat parallel bracing number and spacing
         if type(b_nums) is list:
             if type(b_nums[0]) is list:
                 fix_b = b_nums.copy()
@@ -237,7 +230,10 @@ def DEBUG_DataErrors(System_info):
                         b_spacing.append(value)
     
     b_product = np.array(b_nums)*np.array(b_spacing)
-    
+
+    if type(b_product[0]) is np.ndarray: # fixes bug with nonuniform/normal b_product
+        b_product = list(b_product[0])
+        
     if sum(span_lengths) <= sum(b_product):
         raise DataError('Bracing Length > Girder Length') 
         
@@ -247,6 +243,7 @@ def DEBUG_DataErrors(System_info):
     
 
 def DEBUG_Plotting(bracing_xcoord, bracing_ycoord, System_info):
+    # Extract System_info data needed
     Orientation = System_info[2]['Orientation']
     Uniformity = System_info[2]['Bracing Configuration']
     Span_length = System_info[0]['Span Length']
@@ -258,6 +255,7 @@ def DEBUG_Plotting(bracing_xcoord, bracing_ycoord, System_info):
     plt.figure()
     plt.title(title)
     
+    # Define girders with skew
     gxi = 0
     gxf = girder_length
     globalspacing = 0
@@ -270,8 +268,9 @@ def DEBUG_Plotting(bracing_xcoord, bracing_ycoord, System_info):
         skewoffset = globalspacing * math.tan(math.radians(Skew))
         gx = np.array([gxi + skewoffset, gxf + skewoffset])
         gy = np.array([globalspacing, globalspacing])
-        plt.plot(gx,gy,'k')
+        plt.plot(gx,gy,'k') # Plot girders
     
+    # Define bridge ends
     gyi = 0
     gymax = sum(Girder_spacing)
     gxi_skewed = gxi + gymax * math.tan(math.radians(Skew))
@@ -280,11 +279,12 @@ def DEBUG_Plotting(bracing_xcoord, bracing_ycoord, System_info):
     grighty = np.array([gyi, gymax])
     gleftx = np.array([gxf, gxf_skewed])
     glefty = np.array([gyi, gymax])
-    plt.plot(grightx,grighty,'k')
-    plt.plot(gleftx,glefty,'k')
+    plt.plot(grightx,grighty,'k') # Plot right end
+    plt.plot(gleftx,glefty,'k') # Plot left end
     
+    # Normal Orientation Plotting Algorithm
     if Orientation == 'Normal':
-        normal_dict = {}   
+        normal_dict = {} # Create dictionary of x coords and corresponding y coords
         for girder, xpoints in enumerate(bracing_xcoord):
             for xpoint in xpoints:
                 normal_dict[xpoint] = []
@@ -295,31 +295,33 @@ def DEBUG_Plotting(bracing_xcoord, bracing_ycoord, System_info):
         for x, yvalues in normal_dict.items():
             Ys = []
             Xs = []
-            for y in yvalues:
+            for y in yvalues: # Create list of x and y for each bracing to plot line
                 Ys.append(y)
                 Xs.append(x)
-            plt.plot(Xs,Ys,'0.6')
+            plt.plot(Xs,Ys,'0.6') # Plot bracing
         for x, yvalues in normal_dict.items():
             for y in yvalues:
-                plt.plot(x,y,'r.')
+                plt.plot(x,y,'r.') # Plot nodes as points
     
+    # Parallel Orientation Plotting Algorithm
     if Orientation == 'Parallel':
-        a = []
+        a = [] # Create list to store x, y pair numpy arrays for each girder
         for i, xset in enumerate(bracing_xcoord):
             XY = np.zeros([len(xset),2])
             XY[:,0] = bracing_xcoord[i]
             XY[:,1] = bracing_ycoord[i]
             a.append(XY)
+            
         # Plot bracings
         for bracing_num in range(len(a[0])):
             npa = np.array(a)
-            bracing = npa[:, bracing_num, :]
+            bracing = npa[:, bracing_num, :] # Access current index bracing
             xcross = []
             ycross = []
             for g in bracing:
                 xcross.append(g[0])
                 ycross.append(g[1])
-            plt.plot(xcross,ycross,'0.6') # plot bracings
+            plt.plot(xcross,ycross,'0.6') # Plot bracings as lines
         
         # Plot girders
         for k, girder in enumerate(a):
@@ -328,14 +330,14 @@ def DEBUG_Plotting(bracing_xcoord, bracing_ycoord, System_info):
             for i, row in enumerate(girder):
                 xcross.append(girder[i,0])
                 ycross.append(girder[i,1])
-                plt.plot(xcross,ycross,'k') # plot girders
+                plt.plot(xcross,ycross,'k') # Plot girders
         
         # Plot points
         for k, girder in enumerate(a):
             for i, row in enumerate(girder):
                 for point in row:
                     x, y = row
-                    plt.plot(x,y,'r.') # plot bracing locations on girders
+                    plt.plot(x,y,'r.') # Plot bracing nodes on girders as points
                     
 System_info = system_iden.retrieve(InputFileName,InputRow)
 
