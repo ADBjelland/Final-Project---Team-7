@@ -1,11 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon May  2 16:12:08 2022
-
-@author: caradolbear
-"""
-
 import math
 import numpy as np
 import csv
@@ -147,6 +139,7 @@ class system_iden:
         # Creates list of lists. Each component is list of global coordinate of all splices within each girder
         # Length of output will be # of girder, # of each list inside of output is # of splices
         
+                
         a = System_info[0]["Splice Location"]
         GLength =  System_info[0]["Span Length"]
         Girder_num = System_info[0]["Girder Number"]
@@ -158,9 +151,12 @@ class system_iden:
         
         m = []
         ii = 0
-        for List in a:
-
-            if ii == 0:
+        
+         # For loop to make a list of span transitioning point.
+        for List in a:     
+            # a is list of lists that contains spacing between splices for each span.
+            # Thus, iterate over all items in a.
+            if ii == 0:     # Since it is local coordinate, the starting point is always zero.
                 x_sum = 0
             else:
                 x_sum = sum(span_length[0:ii])
@@ -169,9 +165,9 @@ class system_iden:
             
             ii += 1
             
-            for Item in List:
+            for Item in List:     #Iterate over all entries of lists from 'a'
             
-                x_sum += Item
+                x_sum += Item        # Add splice distance and generate new splice coordinate
                 m.append(x_sum)
         
         m.append(sum(span_length[0:ii]))
@@ -179,7 +175,7 @@ class system_iden:
         
         n = []
         y_start = 0
-        for i in range(len(x_coord)):
+        for i in range(len(x_coord)):      #Creates same amount of y coordinates to x coordinates of each splice
             n.append(y_start)  
         
         y_coord = n
@@ -187,7 +183,9 @@ class system_iden:
         return x_coord, y_coord
     
     @staticmethod
-    def normal_bracing (System_info):   #Will return 
+    def normal_bracing (System_info):  
+        
+        #Will return global coordinates for bracing points of each girder for normal bracing styled system.
         
         Girder_info = System_info[0]
         Girder_length = sum(Girder_info["Span Length"])
@@ -215,20 +213,22 @@ class system_iden:
         
         i = 0 
         while i < Girder_num:
+            
+            # While loop to create grid based on the spacing information from user's input file.
             x_start = 0.0
             y_start = 0.0
             m = []
             n = []
             
-            x_start = x_start + ((sum(Girder_spacing[i:]))*(math.tan(skew*math.pi/180)))
+            x_start = x_start + ((sum(Girder_spacing[i:]))*(math.tan(skew*math.pi/180)))   #Reflect skew angle to change the starting point of each girder
             y_start = y_start + sum(Girder_spacing[i:])
             m.append(x_start)
             n.append(y_start)
            
-            for j in range(len(span_length)):
+            for j in range(len(span_length)):            #For loop to create list of points where span transition points
                 m.append(x_start + span_length[j])
-            x_end = x_start + Girder_length
-            y_end = y_start
+            x_end = x_start + Girder_length        # Append end point of the grid for x coordinate
+            y_end = y_start                       #Append end point of the grid for y coordinate
             
             m.append(x_end)
             n.append(y_end)
@@ -244,7 +244,7 @@ class system_iden:
         
         
         # return Girder_endpoint_x, Girder_endpoint_y
-        if bracing_config == "Uniform":
+        if bracing_config == "Uniform":                 # Assigninig grid coordinate when bracing configuration is uniform.
             
             x_grid_point= 0
             x_end = Girder_spanpoint_x[1][-1]
@@ -252,7 +252,7 @@ class system_iden:
             
             d = bracing_spacing[0]
             
-            while x_grid_point < x_end:
+            while x_grid_point < x_end:                 # Assigning grid coordinates in x-axis based on bracing spacing from input file.
                 if x_grid_point + d < x_end:
                     x_grid_point += d
                     x_grid.append(x_grid_point)
@@ -263,29 +263,29 @@ class system_iden:
                 m = []
                 n = []
                 for k in x_grid:
-                    if k >= L[0] and k <= L[-1]:
-                        m.append(k)
-                        n.append(Girder_spanpoint_y[i][0])
+                    if k >= L[0] and k <= L[-1]:         # If grid coordinate is within the length of each girder, then the point is added to the list of bracing points
+                        m.append(k)                       
+                        n.append(Girder_spanpoint_y[i][0])   # Assigning y coordinates of each bracing point.
                         
                 i+=1
                 bracing_xcoord.append(m)
                 bracing_ycoord.append(n)
-            
+                
             check_buffer = []
-            for L in Girder_spanpoint_x:
-                for k in range(len(L)):
+            for L in Girder_spanpoint_x:             # For loop to check if assigned bracing coordinates interfere with buffer
+                for k in range(len(L)):            
                     check_buffer.append(L[k] - buffer_length)
                     check_buffer.append(L[k] + buffer_length)
-            
+
             for i in range(len(bracing_xcoord)):
-                for j in bracing_xcoord[i]:
-                    if j in check_buffer:
+                for j in bracing_xcoord[i]:                # If it coincides with buffer zone,interfering bracing points need to be taken off from the list.
+                    if j in check_buffer:                  # Only applies to uniform case. 
                         bracing_xcoord[i].remove(j)
                         bracing_ycoord[i].pop(0)
                 
             return bracing_xcoord, bracing_ycoord
               
-        if bracing_config == "Nonuniform":    
+        if bracing_config == "Nonuniform":                      # Assigninig grid coordinate when bracing configuration is nonuniform.
             
             bracing_number = bracing_info["Number of Bracing"][0]
             bracing_spacing = bracing_info ["Bracing Spacing"][0]
@@ -303,14 +303,14 @@ class system_iden:
                 d = bracing_spacing[i]
                 k = 0
                 if i == 0:
-                    while k < int(bracing_number[i]):
+                    while k < int(bracing_number[i]):      #If grid coordinate is within the length of each girder, then the point is added to the list of bracing points
                         if x_grid_point + d < x_end:
                             x_grid_point += d
                             x_grid.append(x_grid_point)
                         k+=1
                 else:
-                    while k < int(bracing_number[i]):
-                        if x_grid_point + d < x_end:
+                    while k < int(bracing_number[i]):     
+                        if x_grid_point + d < x_end:     # To make sure that it is not generating any point beyond length of girder
                             x_grid_point += d
                             x_grid.append(x_grid_point)
                             k+=1
@@ -322,8 +322,8 @@ class system_iden:
             for L in Girder_spanpoint_x:
                 m = []
                 n = []
-                for k in x_grid:
-                    if k >= L[0] and k <= L[-1]:
+                for k in x_grid:        # For loop to assign y coordinates of bracing points of each girder
+                    if k >= L[0] and k <= L[-1]:   
                         m.append(k)
                         n.append(Girder_spanpoint_y[i][0])
                 i += 1
@@ -389,7 +389,7 @@ class system_iden:
                     if i == len(spanlength) - 1:
                         bps = math.floor(span/bs) - 1
                     for b in range(int(bps)):
-                        bracings.append([(b+1)*bs + sep, gspacing*girderamt]) # y-location of base girder is maximum
+                        bracings.append([(b+1)*bs + sep, 0]) # y-location of base girder is maximum
                
                 bstore = [np.array(bracings)]
                 
@@ -397,7 +397,7 @@ class system_iden:
                 for g, gs in enumerate(gspacing): # noninclusive of first girder
                     globalspacing = globalspacing + gs # total spacing from 0
                     skewoffset = globalspacing * math.tan(math.radians(skew))
-                    skewedgirder = np.array(bracings) - np.array([skewoffset, globalspacing]) # subtract
+                    skewedgirder = np.array(bracings) + np.array([skewoffset, globalspacing]) # subtract
                     bstore.append(skewedgirder)
             
         if uni == 'nonuniform':
@@ -427,16 +427,16 @@ class system_iden:
                         bps = int(bps)
                         for b in range(int(bps)):
                             bs = bspacing[i][j]
-                            bracings.append([bprev + bs, gspacing*girderamt]) # y-location is y max
+                            bracings.append([bprev + bs, 0]) # y-location is y max
                             bprev = bprev + bs
-                        
+                
                 bstore = [np.array(bracings)]
                 
                 globalspacing = 0
                 for g, gs in enumerate(gspacing): # noninclusive of first girder
                     globalspacing = globalspacing + gs # total spacing from 0
                     skewoffset = globalspacing * math.tan(math.radians(skew))
-                    skewedgirder = np.array(bracings) - np.array([skewoffset, globalspacing]) # subtract
+                    skewedgirder = np.array(bracings) + np.array([skewoffset, globalspacing]) # subtract
                     bstore.append(skewedgirder)
         
         # Convert to list of lists of x and y coordinates
@@ -462,3 +462,15 @@ class system_iden:
         splice_dist = x_coord[m2] - x_coord[m1]
         
         return splice_dist
+© 2022 GitHub, Inc.
+Terms
+Privacy
+Security
+Status
+Docs
+Contact GitHub
+Pricing
+API
+Training
+Blog
+About
