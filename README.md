@@ -7,7 +7,9 @@ Three scripts are necessary to run the program in Abaqus.
   3. InputDebug.py
         - Intended to be used prior to running AbaqusMacro.py.
         - Checks that outputs from InputPreprocessor.py for data errors and plots defined bridge bracings to allow for visual check.
+        - Can change file name, input row, and debugging setting.
   5. AbaqusMacro.py
         - Run within Abaqus, this generates the geometry of the bridge and runs FEA in Abaqus.
+        - Can change file name and input row.
 
 Refer to example input files to ensure data format is correct prior to use. 
