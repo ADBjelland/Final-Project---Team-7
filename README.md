@@ -14,3 +14,6 @@ Three scripts are necessary to run the program in Abaqus.
         - Can change file name and input row.
 
 Refer to example input files to ensure data format is correct prior to use. 
+
+Documentation: https://docs.google.com/document/d/10zO6yMPpG-RnKnAKklPowEqYQDxbSeN2/edit?usp=sharing&ouid=116375287709933268163&rtpof=true&sd=true
+Presentation: https://docs.google.com/presentation/d/181gSlfImbQCvOoHU36N8nUIlTq_se1nZ1AS3RKY53z8/edit?usp=sharing
