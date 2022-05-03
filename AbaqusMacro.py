@@ -1,18 +1,11 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon May  2 16:21:14 2022
-
-@author: caradolbear
-"""
-
 import math
 import numpy as np
 import csv
 from InputPreprocessor import *
 
 InputFileName = "Final Project Input File - Sheet1.csv"   #Read input csv file
-InputRow = 5
+WorkingDirectory = 'D://temp//'
+InputRow = 6
 
 System_info = system_iden.retrieve(InputFileName,InputRow)
 x_coord = system_iden.splice_local(System_info)
@@ -24,13 +17,11 @@ elif System_info[2]['Orientation'] == 'Parallel':
     bracing_xcoord, bracing_ycoord = system_iden.parallel_bracing(System_info)
 
 splice_coord = system_iden.splice_local(System_info)
-# splice_dist = system_iden.splice_dist_calc(System_info,x_coord,y_coord)
 
 for item in System_info[0]['Cross Section Property']:
     PList,CList = GirderSketch(item, System_info[0]['Girder Type'])
 
 ## --- Run Abaqus Script --- ##
-
 # Do not delete the following import lines
 from abaqus import *
 from abaqusConstants import *
@@ -55,6 +46,7 @@ import connectorBehavior
 
 ## --- Defining Girder Sketch --- ##
 def IBeamSketch(s, PList, CList):
+    # Create IBeam sketch from points and connectivity
     s.setPrimaryObject(option=STANDALONE)
     
     for item in CList:
@@ -72,6 +64,7 @@ def DeckSketch(System_info, PartName):
     
     BWidth = sum(GSpacing) + DeckInfo[4]*2
     
+    # Define points for a rhombus/rectangle, connect them, and turn into part...
     CList = [(0,1), (1,2), (2,3), (3,0)]
     PList = [(0,0),(GLength,0),(GLength + BWidth*math.tan(Skew*math.pi/180.0),BWidth),(BWidth*math.tan(Skew*math.pi/180.0),BWidth)]    
     
@@ -101,7 +94,7 @@ def StiffenerBraceSketch(GSpacing, System_info, ii):
     
     PartName = 'Stiffener - ' + str(ii)
     
-    # Construct the stiffeners...
+    # Construct the stiffeners by sketching rectangles...
     s = mdb.models['Model-1'].ConstrainedSketch(name='__profile__', sheetSize=200.0)
     g, v, d, c = s.geometry, s.vertices, s.dimensions, s.constraints
 
@@ -124,7 +117,7 @@ def StiffenerBraceSketch(GSpacing, System_info, ii):
     
     mdb.models['Model-1'].parts[PartName].setValues(space=THREE_D, type=DEFORMABLE_BODY)
     
-    # Construct the braces...
+    # Construct the braces by defining and joining points...
     PartName = 'Brace - ' + str(ii)
     p = mdb.models['Model-1'].Part(name=PartName, dimensionality=TWO_D_PLANAR, type=DEFORMABLE_BODY)
         
@@ -159,7 +152,7 @@ def StiffenerBraceSketch2(GSpacing, System_info, ii):
     
     PartName = 'Stiffener - ' + str(ii)
     
-    # Construct the stiffeners...
+    # Construct the stiffeners by sketching rectangles...
     s = mdb.models['Model-1'].ConstrainedSketch(name='__profile__', sheetSize=200.0)
     g, v, d, c = s.geometry, s.vertices, s.dimensions, s.constraints
 
@@ -175,7 +168,7 @@ def StiffenerBraceSketch2(GSpacing, System_info, ii):
         
     mdb.models['Model-1'].parts[PartName].setValues(space=THREE_D, type=DEFORMABLE_BODY)
     
-    # Construct the braces...
+    # Construct the braces by defining and joining points...
     PartName = 'Brace - ' + str(ii)
     p = mdb.models['Model-1'].Part(name=PartName, dimensionality=THREE_D, type=DEFORMABLE_BODY)
     
@@ -268,6 +261,7 @@ def CreateBridgeSections(System_info):
     
     mdb.models['Model-1'].TrussSection(area=BProp[0], material='Steel', name='Truss')
     
+    # Define cross-section properties along gider
     ii = 1
     for Prop in CProp:
         WebName = 'Web - ' + str(ii)
@@ -288,7 +282,8 @@ def CreateBridgeSections(System_info):
         integrationRule=SIMPSON, numIntPts=5)
         
         ii += 1
-        
+    
+    # Define stiffener properties...
     mdb.models['Model-1'].HomogeneousShellSection(name='Stiffener', 
     preIntegrate=OFF, material='Steel', thicknessType=UNIFORM, 
     thickness=SProp[1], thicknessField='', nodalThicknessField='', 
@@ -296,6 +291,7 @@ def CreateBridgeSections(System_info):
     thicknessModulus=None, temperature=GRADIENT, useDensity=OFF, 
     integrationRule=SIMPSON, numIntPts=5)
     
+    # Define deck properties...
     mdb.models['Model-1'].HomogeneousShellSection(name='Deck', preIntegrate=OFF, 
     material='Concrete', thicknessType=UNIFORM, thickness=DProp[3], 
     thicknessField='', nodalThicknessField='', 
@@ -342,12 +338,14 @@ def BeamAssignment(System_info, splice_coord, PartName):
     return
 
 def BracingAssignment(SPartName, BPartName, SSectionName, BSectionName):
+    # Stiffener property assignment...
     p = mdb.models['Model-1'].parts[SPartName]
     f = p.faces
     region = p.Set(faces=f, name=SSectionName)
     p.SectionAssignment(region=region, sectionName=SSectionName, offset=0.0, 
         offsetType=MIDDLE_SURFACE, offsetField='', thicknessAssignment=FROM_SECTION)
     
+    # Strut property assignment...
     p = mdb.models['Model-1'].parts[BPartName]
     e = p.edges
     region = p.Set(edges=e, name=BSectionName)
@@ -381,16 +379,12 @@ def BraceAssembly(ii):
     p = mdb.models['Model-1'].parts[PartName]
     a.Instance(name=INameS, part=p, dependent=ON)
     
+    # Merge all instances of brace system.
     AName = 'Brace System - ' + str(ii)
     IList = a.instances.keys()
     a.InstanceFromBooleanMerge(name=AName, instances=([a.instances[IList[i]] for i in range(len(IList))]), mergeNodes=ALL, nodeMergingTolerance=0.1, domain=GEOMETRY, originalInstances=DELETE)
     
-    del a.features[AName + str(-1)]
-    
-    p = mdb.models['Model-1'].parts[AName]
-    region = p.sets['Truss']
-    p.assignBeamSectionOrientation(region=region, method=N1_COSINES, n1=(0.0, 0.0,-1.0))
-    
+    del a.features[AName + str(-1)]   
     return
 
 def BraceAssembly2(ii, System_info):
@@ -498,6 +492,7 @@ def TieInteraction(System_info, GLocation):
     
     BWidth = sum(GSpacing) + DeckInfo[4]*2  
     
+    # Connect top flange of girders to respective area along deck...
     for ii in range(nGirder):   
         a = mdb.models['Model-1'].rootAssembly
                 
@@ -521,6 +516,7 @@ def Supports(System_info, GLocation):
     
     a = mdb.models['Model-1'].rootAssembly
     
+    # Calculate location for supports...
     SGlobal = [[0,0,0]]
     Total = 0.0
     for item in SLength:
@@ -530,6 +526,7 @@ def Supports(System_info, GLocation):
     InstanceName = 'Superstructure-1'
     e = a.instances[InstanceName].edges
     
+    # Define support at along edges at support location...
     for ii in range(0, nGirder):        
         jj = 0
         for BoundaryType in SType:
@@ -545,7 +542,7 @@ def Supports(System_info, GLocation):
             region = regionToolset.Region(edges=Selection)
         
             BoundaryName = 'Support - ' + str(ii + 1) + ' - ' + str(jj + 1)
-            if BoundaryType == 0:
+            if BoundaryType == 1:
                 mdb.models['Model-1'].DisplacementBC(name=BoundaryName, createStepName='Initial', region=region, u1=SET, u2=SET, u3=SET, ur1=UNSET, ur2=UNSET, ur3=UNSET, amplitude=UNSET, fixed=OFF, distributionType=UNIFORM, fieldName='', localCsys=None)
             else:
                 mdb.models['Model-1'].DisplacementBC(name=BoundaryName, createStepName='Initial', region=region, u1=UNSET, u2=SET, u3=SET, ur1=UNSET, ur2=UNSET, ur3=UNSET, amplitude=UNSET, fixed=OFF, distributionType=UNIFORM, fieldName='', localCsys=None)
@@ -588,7 +585,6 @@ ii = 2
 PartName = 'Girder - 1'
 Plane = 'XY'
 for item in splice_coord[0][1:-1]:
-    print(item)
     DatumPartition(item, Plane, PartName, ii)
     ii += 2
 
@@ -677,24 +673,25 @@ a = mdb.models['Model-1'].rootAssembly
 IList = a.instances.keys()
 a.InstanceFromBooleanMerge(name=AName, instances=([a.instances[IList[i]] for i in range(len(IList))]), mergeNodes=ALL, nodeMergingTolerance=0.1, domain=GEOMETRY, originalInstances=DELETE)
 
-# Assemble Bridge System
+# Assemble Bridge System...
 BridgeAssembly(System_info)
 
-# Assign Girder Supports
+# Assign Girder/Deck Tie, Supports, and Mesh...
 TieInteraction(System_info, GLocation)
 Supports(System_info, GLocation)
 Mesh(System_info)
 
-# Assign Load
+# Assign Load Step...
 mdb.models['Model-1'].StaticStep(name='LC_1', previous='Initial')
 
+# Define basic pressure load along center of bridge...
 Z = System_info[0]['Girder Length']/2
 Y = System_info[0]['Cross Section Property'][0][3]
 X = sum(System_info[0]['Girder Spacing'])/2
 
 a = mdb.models['Model-1'].rootAssembly
 s1 = a.instances['Deck'].faces
-side2Faces1 = s1.findAt(((3.0, 5.0, 6.666667), ))
+side2Faces1 = s1.findAt(((X, Y, Z), ))
 region = regionToolset.Region(side2Faces=side2Faces1)
 mdb.models['Model-1'].Pressure(name='Load-1', createStepName='LC_1', 
     region=region, distributionType=UNIFORM, field='', magnitude=-1.0, 
@@ -713,3 +710,23 @@ mdb.Job(name='Job-1', model='Model-1', description='', type=ANALYSIS,
     scratch='', resultsFormat=ODB)
 
 mdb.jobs['Job-1'].submit(consistencyChecking=OFF)
+mdb.jobs['Job-1'].waitForCompletion()
+
+# Select output file...
+session.mdbData.summary()
+o3 = session.openOdb(name=WorkingDirectory + '//Job-1.odb')
+session.viewports['Viewport: 1'].setValues(displayedObject=o3)
+
+# Create Displacement Report...
+leaf = dgo.LeafFromNodeSets(nodeSets=("SUPERSTRUCTURE-1.TRUSS","DECK.DECK", ))
+session.viewports['Viewport: 1'].odbDisplay.displayGroup.replace(leaf=leaf)
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=1)
+odb = session.odbs[WorkingDirectory + '//Job-1.odb']
+session.writeFieldReport(fileName='DISPREPORT.csv', append=ON, sortItem='Node Label', odb=odb, step=0, frame=1, outputPosition=NODAL, variable=(('U', NODAL, ((COMPONENT, 'U1'), (COMPONENT, 'U2'), (COMPONENT, 'U3'), )), ))
+
+# Create Stress Report...
+leaf = dgo.LeafFromElementSets(elementSets=("SUPERSTRUCTURE-1.TRUSS","DECK.DECK", ))
+session.viewports['Viewport: 1'].odbDisplay.displayGroup.replace(leaf=leaf)
+session.viewports['Viewport: 1'].odbDisplay.setFrame(step=0, frame=1)
+odb = session.odbs[WorkingDirectory + '//Job-1.odb']
+session.writeFieldReport(fileName='STRESSREPORT.csv', append=ON, sortItem='Element Label', odb=odb, step=0, frame=1, outputPosition=INTEGRATION_POINT, variable=(('S', INTEGRATION_POINT, ((COMPONENT, 'S11'), )), ))
