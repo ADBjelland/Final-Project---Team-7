@@ -271,22 +271,22 @@ class system_iden:
                 n = []
                 for k in x_grid:
                     if k >= L[0] and k <= L[-1]:         # If grid coordinate is within the length of each girder, then the point is added to the list of bracing points
-                        m.append(k)
-                        n.append(Girder_spanpoint_y[i][0])
+                        m.append(k)                       
+                        n.append(Girder_spanpoint_y[i][0])   # Assigning y coordinates of each bracing point.
                         
                 i+=1
                 bracing_xcoord.append(m)
                 bracing_ycoord.append(n)
             
             check_buffer = []
-            for L in Girder_spanpoint_x:
-                for k in range(len(L)):
+            for L in Girder_spanpoint_x:             # For loop to check if assigned bracing coordinates interfere with buffer
+                for k in range(len(L)):            
                     check_buffer.append(L[k] - buffer_length)
                     check_buffer.append(L[k] + buffer_length)
             
             for i in range(len(bracing_xcoord)):
-                for j in bracing_xcoord[i]:
-                    if j in check_buffer:
+                for j in bracing_xcoord[i]:                # If it coincides with buffer zone,interfering bracing points need to be taken off from the list.
+                    if j in check_buffer:                  # Only applies to uniform case. 
                         bracing_xcoord[i].remove(j)
                         bracing_ycoord[i].pop(0)
                 
