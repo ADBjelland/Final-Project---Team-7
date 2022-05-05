@@ -6,7 +6,7 @@ Three scripts are necessary to run the program in Abaqus.
         - Uses dictionary of data (System_info) to run geometry calculations for girder sketch nodes, splice coordinates, and bracing coordinates.
         - This module is imported into the other two scripts for use.
   3. InputDebug.py
-        - Intended to be used prior to running AbaqusMacro.py.
+        - Intended to be used prior to running AbaqusMacro.py as a safety net and visualization tool to verify the bridge data you will run in Abaqus. It will check for DataType errors, UnacceptedEntry strings, ListLengthErrors, and DataErrors that do not make logical sense for bridge geometry. Some data type errors may be caught during the execution of the InputPreprocessor.py functions.
         - Checks that outputs from InputPreprocessor.py for data errors and plots defined bridge bracings to allow for visual check.
         - Can change file name, input row, and debugging setting.
   5. AbaqusMacro.py
