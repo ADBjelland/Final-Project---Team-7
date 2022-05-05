@@ -11,7 +11,7 @@ Three scripts are necessary to run the program in Abaqus.
         - Can change file name, input row, and debugging setting.
   5. AbaqusMacro.py
         - Run within Abaqus, this generates the geometry of the bridge and runs FEA in Abaqus.
-        - Can change file name and input row.
+        - Can change file name, input row, and Abaqus working directory (in order to get results).
 
 Refer to example input files to ensure data format is correct prior to use. 
 
